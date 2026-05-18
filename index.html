@@ -1,33 +1,340 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Webcam App</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>社員確認</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a2e;
+      color: #eee;
+      font-family: 'Helvetica Neue', sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ===== 横レイアウト ===== */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ===== 左パネル ===== */
+    .left {
+      width: 45%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      gap: 12px;
+      border-right: 1px solid #333;
+    }
+
+    /* 社員番号表示 */
+    .emp-display {
+      width: 100%;
+      background: #0f0f1a;
+      border: 2px solid #444;
+      border-radius: 10px;
+      padding: 10px 14px;
+      text-align: right;
+    }
+    .emp-display .label {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 2px;
+    }
+    .emp-display .number {
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: 6px;
+      color: #00d4ff;
+      min-height: 40px;
+    }
+    .emp-display .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 30px;
+      background: #00d4ff;
+      vertical-align: middle;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* 社員名表示 */
+    .name-display {
+      width: 100%;
+      background: #0f0f1a;
+      border: 2px solid #444;
+      border-radius: 10px;
+      padding: 10px 14px;
+      text-align: center;
+      min-height: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .name-display .label {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .name-display .name {
+      font-size: 26px;
+      font-weight: bold;
+      color: #fff;
+    }
+    .name-display.found  { border-color: #00e676; }
+    .name-display.found .name { color: #00e676; }
+    .name-display.notfound { border-color: #ff4d6d; }
+    .name-display.notfound .name { color: #ff4d6d; font-size: 14px; }
+    .name-display.loading .name { color: #aaa; font-size: 14px; }
+
+    /* テンキー */
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 100%;
+    }
+    .key {
+      background: #2a2a4a;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 14px 0;
+      cursor: pointer;
+      transition: background 0.1s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .key:active { background: #00d4ff; color: #000; transform: scale(0.94); }
+    .key.zero   { grid-column: span 1; }
+    .key.del    { background: #3a2a2a; font-size: 18px; }
+    .key.del:active { background: #ff4d6d; }
+    .key.clear  { background: #2a3a2a; font-size: 14px; }
+    .key.clear:active { background: #00e676; color: #000; }
+
+    /* ===== 右パネル（カメラ） ===== */
+    .right {
+      width: 55%;
+      position: relative;
+      background: #000;
+      overflow: hidden;
+    }
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      display: block;
+    }
+    .cam-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      color: #555;
+      font-size: 13px;
+    }
+    .cam-placeholder svg { opacity: 0.3; }
+    .cam-placeholder.hidden { display: none; }
+
+    /* カメラ起動ボタン */
+    #btn-cam {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(0,212,255,0.85);
+      color: #000;
+      border: none;
+      border-radius: 24px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      z-index: 10;
+    }
+    #btn-cam.stop { background: rgba(255,77,109,0.85); color: #fff; }
+
+    /* エラー */
+    #cam-error {
+      position: absolute;
+      bottom: 56px;
+      left: 8px; right: 8px;
+      background: rgba(255,77,109,0.15);
+      border: 1px solid #ff4d6d;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: #ff4d6d;
+      display: none;
+    }
+    #cam-error.visible { display: block; }
+  </style>
 </head>
 <body>
-  <h1>Webcam App</h1>
-  <video id="video" width="640" height="480" autoplay playsinline muted></video><br>
-  <button id="snap">Take Photo</button><br>
-  <canvas id="canvas" width="640" height="480"></canvas>
 
-  <script>
-    var video   = document.getElementById('video');
-    var canvas  = document.getElementById('canvas');
-    var snap    = document.getElementById('snap');
-    var context = canvas.getContext('2d');
+<div class="main">
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-      .then(function(stream) {
-        video.srcObject = stream;
+  <!-- 左：テンキー＋表示 -->
+  <div class="left">
+
+    <div class="emp-display">
+      <div class="label">社員番号</div>
+      <div class="number" id="emp-num"><span class="cursor"></span></div>
+    </div>
+
+    <div class="name-display" id="name-box">
+      <div class="label">氏名</div>
+      <div class="name" id="emp-name">—</div>
+    </div>
+
+    <div class="keypad">
+      <button class="key" data-val="1">1</button>
+      <button class="key" data-val="2">2</button>
+      <button class="key" data-val="3">3</button>
+      <button class="key" data-val="4">4</button>
+      <button class="key" data-val="5">5</button>
+      <button class="key" data-val="6">6</button>
+      <button class="key" data-val="7">7</button>
+      <button class="key" data-val="8">8</button>
+      <button class="key" data-val="9">9</button>
+      <button class="key clear" data-val="C">CLR</button>
+      <button class="key zero" data-val="0">0</button>
+      <button class="key del"  data-val="DEL">⌫</button>
+    </div>
+
+  </div>
+
+  <!-- 右：カメラ -->
+  <div class="right">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="cam-placeholder" id="cam-placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      カメラ未起動
+    </div>
+    <div id="cam-error"></div>
+    <button id="btn-cam">📷 カメラ起動</button>
+  </div>
+
+</div>
+
+<script>
+  // ============================================================
+  // ★ ここにGASデプロイURLを貼り付ける
+  // ============================================================
+  var GAS_URL = 'YOUR_GAS_DEPLOY_URL';
+
+  var empInput = '';
+  var stream   = null;
+
+  var empNumEl   = document.getElementById('emp-num');
+  var empNameEl  = document.getElementById('emp-name');
+  var nameBox    = document.getElementById('name-box');
+  var video      = document.getElementById('video');
+  var placeholder= document.getElementById('cam-placeholder');
+  var btnCam     = document.getElementById('btn-cam');
+  var camError   = document.getElementById('cam-error');
+
+  // ── テンキー入力 ──
+  document.querySelectorAll('.key').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var v = this.dataset.val;
+      if (v === 'C') {
+        empInput = '';
+      } else if (v === 'DEL') {
+        empInput = empInput.slice(0, -1);
+      } else {
+        if (empInput.length >= 6) return;
+        empInput += v;
+      }
+      updateDisplay();
+      if (empInput.length === 6) searchEmployee();
+    });
+  });
+
+  function updateDisplay() {
+    empNumEl.innerHTML = empInput
+      ? empInput + '<span class="cursor"></span>'
+      : '<span class="cursor"></span>';
+    if (empInput.length < 6) {
+      nameBox.className  = 'name-display';
+      empNameEl.textContent = '—';
+    }
+  }
+
+  // ── GAS検索 ──
+  function searchEmployee() {
+    nameBox.className  = 'name-display loading';
+    empNameEl.textContent = '検索中…';
+
+    fetch(GAS_URL + '?empNo=' + empInput)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          nameBox.className  = 'name-display found';
+          empNameEl.textContent = data.name;
+        } else {
+          nameBox.className  = 'name-display notfound';
+          empNameEl.textContent = '該当者なし';
+        }
       })
       .catch(function(err) {
-        document.body.innerHTML += '<p style="color:red">エラー: ' + err + '</p>';
+        nameBox.className  = 'name-display notfound';
+        empNameEl.textContent = '通信エラー';
       });
+  }
 
-    snap.addEventListener('click', function() {
-      context.drawImage(video, 0, 0, 640, 480);
+  // ── カメラ ──
+  btnCam.addEventListener('click', function() {
+    if (stream) {
+      stopCamera();
+    } else {
+      startCamera();
+    }
+  });
+
+  function startCamera() {
+    camError.classList.remove('visible');
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    }).then(function(s) {
+      stream = s;
+      video.srcObject = s;
+      placeholder.classList.add('hidden');
+      btnCam.textContent = '⏹ 停止';
+      btnCam.classList.add('stop');
+    }).catch(function(err) {
+      camError.textContent = 'カメラエラー: ' + err.message;
+      camError.classList.add('visible');
     });
-  </script>
+  }
+
+  function stopCamera() {
+    if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
+    video.srcObject = null;
+    placeholder.classList.remove('hidden');
+    btnCam.textContent = '📷 カメラ起動';
+    btnCam.classList.remove('stop');
+  }
+</script>
 </body>
 </html>
