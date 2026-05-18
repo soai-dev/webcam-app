@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webcam App</title>
+</head>
+<body>
+  <h1>Webcam App</h1>
+  <video id="video" width="640" height="480" autoplay playsinline muted></video><br>
+  <button id="snap">Take Photo</button><br>
+  <canvas id="canvas" width="640" height="480"></canvas>
+
+  <script>
+    var video   = document.getElementById('video');
+    var canvas  = document.getElementById('canvas');
+    var snap    = document.getElementById('snap');
+    var context = canvas.getContext('2d');
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+      .then(function(stream) {
+        video.srcObject = stream;
+      })
+      .catch(function(err) {
+        document.body.innerHTML += '<p style="color:red">エラー: ' + err + '</p>';
+      });
+
+    snap.addEventListener('click', function() {
+      context.drawImage(video, 0, 0, 640, 480);
+    });
+  </script>
+</body>
+</html>
