@@ -228,7 +228,7 @@
   // ============================================================
   // ★ GASデプロイURLをここに貼り付ける
   // ============================================================
-  var GAS_URL = 'https://script.google.com/macros/s/AKfycbxNIqUOzPUP07kIEr3l73KaH3qj60pSOyPWxrUod2FMSkSy5nylu8BGtXRynfO-YPYc/exec';
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbxFORzpbZz5yESXWs-ycpworiZN5cHd3hXfWzarWTwDDgmQOzzD6zlHKZZkjpyaQ1MR/exec';
 
   // モード: 'emp'=社員番号入力, 'pin'=PIN入力
   var mode      = 'emp';
@@ -385,11 +385,7 @@
     empNameEl.textContent = '登録中…';
     empSubEl.textContent  = '';
 
-    fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ empNo: currentEmpNo, pin: pinInput })
-    })
+    fetch(GAS_URL + '?action=register&empNo=' + currentEmpNo + '&pin=' + pinInput)
     .then(function(res) { return res.json(); })
     .then(function(data) {
       if (data.success) {
