@@ -6,7 +6,6 @@
   <title>社員確認</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       background: #1a1a2e;
       color: #eee;
@@ -37,20 +36,10 @@
       border-radius: 10px;
       padding: 6px 10px;
     }
-    .datetime .date {
-      font-size: 13px;
-      color: #aaa;
-      letter-spacing: 0.05em;
-    }
-    .datetime .time {
-      font-size: 28px;
-      font-weight: bold;
-      color: #00d4ff;
-      letter-spacing: 0.1em;
-      line-height: 1.2;
-    }
+    .datetime .date { font-size: 13px; color: #aaa; letter-spacing: 0.05em; }
+    .datetime .time { font-size: 28px; font-weight: bold; color: #00d4ff; letter-spacing: 0.1em; line-height: 1.2; }
 
-    /* 社員番号表示 */
+    /* 社員番号・PIN表示 */
     .emp-display {
       width: 100%;
       background: #0f0f1a;
@@ -61,22 +50,18 @@
     }
     .emp-display .label { font-size: 11px; color: #888; margin-bottom: 2px; }
     .emp-display .number {
-      font-size: 30px;
-      font-weight: bold;
-      letter-spacing: 6px;
-      color: #00d4ff;
-      min-height: 36px;
+      font-size: 30px; font-weight: bold;
+      letter-spacing: 6px; color: #00d4ff; min-height: 36px;
     }
-    .emp-display .cursor {
-      display: inline-block;
-      width: 2px; height: 28px;
-      background: #00d4ff;
-      vertical-align: middle;
+    .emp-display .number.pin-mode { color: #ffab40; letter-spacing: 10px; }
+    .cursor {
+      display: inline-block; width: 2px; height: 28px;
+      background: currentColor; vertical-align: middle;
       animation: blink 1s infinite;
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    /* 社員名表示 */
+    /* 氏名・ステータス表示 */
     .name-display {
       width: 100%;
       background: #0f0f1a;
@@ -85,18 +70,32 @@
       padding: 8px 14px;
       text-align: center;
       min-height: 64px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
     }
     .name-display .label { font-size: 11px; color: #888; margin-bottom: 4px; }
     .name-display .name  { font-size: 24px; font-weight: bold; color: #fff; }
+    .name-display .sub   { font-size: 11px; color: #aaa; margin-top: 4px; }
     .name-display.found     { border-color: #00e676; }
     .name-display.found .name { color: #00e676; }
     .name-display.notfound  { border-color: #ff4d6d; }
     .name-display.notfound .name { color: #ff4d6d; font-size: 14px; }
     .name-display.loading .name  { color: #aaa; font-size: 14px; }
+    .name-display.pin       { border-color: #ffab40; }
+    .name-display.pin .name { color: #ffab40; font-size: 18px; }
+    .name-display.registered { border-color: #888; }
+    .name-display.registered .name { color: #888; font-size: 16px; }
+    .name-display.success   { border-color: #00e676; background: rgba(0,230,118,0.07); }
+    .name-display.success .name { color: #00e676; font-size: 16px; }
+
+    /* テンキーラベル */
+    .keypad-label {
+      width: 100%;
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+      letter-spacing: 0.05em;
+    }
 
     /* テンキー */
     .keypad {
@@ -107,18 +106,15 @@
     }
     .key {
       background: #2a2a4a;
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 22px;
-      font-weight: bold;
-      padding: 13px 0;
-      cursor: pointer;
+      border: none; border-radius: 10px;
+      color: #fff; font-size: 22px; font-weight: bold;
+      padding: 13px 0; cursor: pointer;
       transition: background 0.1s, transform 0.1s;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
     .key:active { background: #00d4ff; color: #000; transform: scale(0.94); }
+    .key.pin-active:active { background: #ffab40; color: #000; }
     .key.del   { background: #3a2a2a; font-size: 18px; }
     .key.del:active { background: #ff4d6d; }
     .key.clear { background: #2a3a2a; font-size: 13px; }
@@ -131,76 +127,50 @@
       align-items: center;
       justify-content: center;
       background: #111;
-      padding: 16px;        /* 余白 */
+      padding: 16px;
     }
-
     .camera-frame {
-      width: 100%;
-      height: 80%;          /* 縦8割 */
+      width: 100%; height: 80%;
       position: relative;
       background: #000;
       border-radius: 14px;
       overflow: hidden;
       border: 1px solid #333;
     }
-
     #video {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       object-fit: cover;
       transform: scaleX(-1);
       display: block;
     }
-
     .cam-placeholder {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 8px;
-      color: #555;
-      font-size: 13px;
+      position: absolute; inset: 0;
+      display: flex; align-items: center;
+      justify-content: center; flex-direction: column;
+      gap: 8px; color: #555; font-size: 13px;
     }
     .cam-placeholder svg { opacity: 0.3; }
     .cam-placeholder.hidden { display: none; }
-
     #btn-cam {
-      position: absolute;
-      bottom: 12px;
-      right: 12px;
-      background: rgba(0,212,255,0.85);
-      color: #000;
-      border: none;
-      border-radius: 24px;
-      padding: 7px 16px;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      z-index: 10;
+      position: absolute; bottom: 12px; right: 12px;
+      background: rgba(0,212,255,0.85); color: #000;
+      border: none; border-radius: 24px;
+      padding: 7px 16px; font-size: 13px; font-weight: bold;
+      cursor: pointer; -webkit-tap-highlight-color: transparent; z-index: 10;
     }
     #btn-cam.stop { background: rgba(255,77,109,0.85); color: #fff; }
-
     #cam-error {
-      position: absolute;
-      bottom: 50px;
-      left: 8px; right: 8px;
-      background: rgba(255,77,109,0.15);
-      border: 1px solid #ff4d6d;
-      border-radius: 8px;
-      padding: 5px 10px;
-      font-size: 11px;
-      color: #ff4d6d;
-      display: none;
+      position: absolute; bottom: 50px; left: 8px; right: 8px;
+      background: rgba(255,77,109,0.15); border: 1px solid #ff4d6d;
+      border-radius: 8px; padding: 5px 10px;
+      font-size: 11px; color: #ff4d6d; display: none;
     }
     #cam-error.visible { display: block; }
   </style>
 </head>
 <body>
 
-  <!-- 左：日時＋テンキー＋表示 -->
+  <!-- 左パネル -->
   <div class="left">
 
     <div class="datetime">
@@ -209,16 +179,19 @@
     </div>
 
     <div class="emp-display">
-      <div class="label">社員番号</div>
+      <div class="label" id="input-label">社員番号</div>
       <div class="number" id="emp-num"><span class="cursor"></span></div>
     </div>
 
     <div class="name-display" id="name-box">
-      <div class="label">氏名</div>
+      <div class="label" id="name-label">氏名</div>
       <div class="name" id="emp-name">—</div>
+      <div class="sub" id="emp-sub"></div>
     </div>
 
-    <div class="keypad">
+    <div class="keypad-label" id="keypad-label">社員番号を入力してください</div>
+
+    <div class="keypad" id="keypad">
       <button class="key" data-val="1">1</button>
       <button class="key" data-val="2">2</button>
       <button class="key" data-val="3">3</button>
@@ -235,7 +208,7 @@
 
   </div>
 
-  <!-- 右：カメラ -->
+  <!-- 右パネル -->
   <div class="right">
     <div class="camera-frame">
       <video id="video" autoplay playsinline muted></video>
@@ -255,30 +228,40 @@
   // ============================================================
   // ★ GASデプロイURLをここに貼り付ける
   // ============================================================
-  var GAS_URL = 'https://script.google.com/macros/s/AKfycbyUi6e3IhvG3L8I_Wxg2trm90cRy6FQfYd68uJCTBcNRCB778sUcSz3NXpsP5bDh3xY/exec';
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbz6cIEjagVeEDEa_mFPQc_uGGhAjO183JZcMF1i1FFHkOaJWzp2AheDCB9BV-om3173/exec';
 
-  var empInput = '';
-  var stream   = null;
+  // モード: 'emp'=社員番号入力, 'pin'=PIN入力
+  var mode      = 'emp';
+  var empInput  = '';
+  var pinInput  = '';
+  var currentEmpNo   = '';
+  var currentName    = '';
+  var stream    = null;
 
-  var empNumEl    = document.getElementById('emp-num');
-  var empNameEl   = document.getElementById('emp-name');
-  var nameBox     = document.getElementById('name-box');
-  var video       = document.getElementById('video');
-  var placeholder = document.getElementById('cam-placeholder');
-  var btnCam      = document.getElementById('btn-cam');
-  var camError    = document.getElementById('cam-error');
+  var empNumEl     = document.getElementById('emp-num');
+  var empNameEl    = document.getElementById('emp-name');
+  var empSubEl     = document.getElementById('emp-sub');
+  var nameBox      = document.getElementById('name-box');
+  var nameLabel    = document.getElementById('name-label');
+  var inputLabel   = document.getElementById('input-label');
+  var keypadLabel  = document.getElementById('keypad-label');
+  var video        = document.getElementById('video');
+  var placeholder  = document.getElementById('cam-placeholder');
+  var btnCam       = document.getElementById('btn-cam');
+  var camError     = document.getElementById('cam-error');
+  var keys         = document.querySelectorAll('.key');
 
   // ── 時計 ──
   function updateClock() {
-    var now  = new Date();
-    var y    = now.getFullYear();
-    var mo   = String(now.getMonth()+1).padStart(2,'0');
-    var d    = String(now.getDate()).padStart(2,'0');
-    var wdays= ['日','月','火','水','木','金','土'];
-    var w    = wdays[now.getDay()];
-    var h    = String(now.getHours()).padStart(2,'0');
-    var mi   = String(now.getMinutes()).padStart(2,'0');
-    var s    = String(now.getSeconds()).padStart(2,'0');
+    var now   = new Date();
+    var y     = now.getFullYear();
+    var mo    = String(now.getMonth()+1).padStart(2,'0');
+    var d     = String(now.getDate()).padStart(2,'0');
+    var wdays = ['日','月','火','水','木','金','土'];
+    var w     = wdays[now.getDay()];
+    var h     = String(now.getHours()).padStart(2,'0');
+    var mi    = String(now.getMinutes()).padStart(2,'0');
+    var s     = String(now.getSeconds()).padStart(2,'0');
     document.getElementById('dt-date').textContent = y+'年'+mo+'月'+d+'日（'+w+'）';
     document.getElementById('dt-time').textContent = h+':'+mi+':'+s;
   }
@@ -286,51 +269,167 @@
   setInterval(updateClock, 1000);
 
   // ── テンキー ──
-  document.querySelectorAll('.key').forEach(function(btn) {
+  keys.forEach(function(btn) {
     btn.addEventListener('click', function() {
       var v = this.dataset.val;
-      if (v === 'C') {
-        empInput = '';
-      } else if (v === 'DEL') {
-        empInput = empInput.slice(0, -1);
-      } else {
-        if (empInput.length >= 6) return;
-        empInput += v;
-      }
-      updateDisplay();
-      if (empInput.length === 6) searchEmployee();
+      if (mode === 'emp') handleEmpKey(v);
+      else                handlePinKey(v);
     });
   });
 
-  function updateDisplay() {
-    empNumEl.innerHTML = empInput
-      ? empInput + '<span class="cursor"></span>'
-      : '<span class="cursor"></span>';
-    if (empInput.length < 6) {
-      nameBox.className     = 'name-display';
-      empNameEl.textContent = '—';
+  // ── 社員番号入力 ──
+  function handleEmpKey(v) {
+    if (v === 'C') {
+      empInput = '';
+    } else if (v === 'DEL') {
+      empInput = empInput.slice(0,-1);
+    } else {
+      if (empInput.length >= 6) return;
+      empInput += v;
     }
+    renderEmpDisplay();
+    if (empInput.length === 6) searchEmployee();
   }
 
-  // ── GAS検索 ──
+  function renderEmpDisplay() {
+    inputLabel.textContent = '社員番号';
+    empNumEl.className     = 'number';
+    empNumEl.innerHTML     = empInput ? empInput + '<span class="cursor"></span>'
+                                      : '<span class="cursor"></span>';
+    if (empInput.length < 6) {
+      nameBox.className     = 'name-display';
+      nameLabel.textContent = '氏名';
+      empNameEl.textContent = '—';
+      empSubEl.textContent  = '';
+    }
+    setKeyColor('emp');
+    keypadLabel.textContent = '社員番号を入力してください';
+  }
+
+  // ── 社員番号検索 ──
   function searchEmployee() {
     nameBox.className     = 'name-display loading';
     empNameEl.textContent = '検索中…';
+    empSubEl.textContent  = '';
+
     fetch(GAS_URL + '?empNo=' + empInput)
       .then(function(res) { return res.json(); })
       .then(function(data) {
-        if (data.success) {
-          nameBox.className     = 'name-display found';
-          empNameEl.textContent = data.name;
-        } else {
+        if (!data.success) {
           nameBox.className     = 'name-display notfound';
+          nameLabel.textContent = '氏名';
           empNameEl.textContent = '該当者なし';
+          empSubEl.textContent  = '';
+          return;
+        }
+        currentEmpNo  = empInput;
+        currentName   = data.name;
+
+        if (data.hasPin) {
+          // C列に値あり → 登録済み
+          nameBox.className     = 'name-display registered';
+          nameLabel.textContent = '氏名';
+          empNameEl.textContent = data.name;
+          empSubEl.textContent  = '✅ 暗証番号登録済み';
+        } else {
+          // C列が空 → PIN入力モードへ
+          nameBox.className     = 'name-display found';
+          nameLabel.textContent = '氏名';
+          empNameEl.textContent = data.name;
+          empSubEl.textContent  = '';
+          setTimeout(switchToPinMode, 600);
         }
       })
       .catch(function() {
         nameBox.className     = 'name-display notfound';
         empNameEl.textContent = '通信エラー';
+        empSubEl.textContent  = '';
       });
+  }
+
+  // ── PINモードへ切替 ──
+  function switchToPinMode() {
+    mode     = 'pin';
+    pinInput = '';
+    inputLabel.textContent  = '暗証番号（PIN）';
+    keypadLabel.textContent = '6桁の暗証番号を入力してください';
+    nameBox.className       = 'name-display pin';
+    nameLabel.textContent   = '氏名';
+    empNameEl.textContent   = currentName;
+    empSubEl.textContent    = '🔑 暗証番号を設定してください';
+    empNumEl.className      = 'number pin-mode';
+    empNumEl.innerHTML      = '<span class="cursor"></span>';
+    setKeyColor('pin');
+  }
+
+  // ── PIN入力 ──
+  function handlePinKey(v) {
+    if (v === 'C') {
+      pinInput = '';
+    } else if (v === 'DEL') {
+      pinInput = pinInput.slice(0,-1);
+    } else {
+      if (pinInput.length >= 6) return;
+      pinInput += v;
+    }
+    // ●で表示（マスク）
+    empNumEl.className = 'number pin-mode';
+    empNumEl.innerHTML = '●'.repeat(pinInput.length) + '<span class="cursor"></span>';
+
+    if (pinInput.length === 6) registerPin();
+  }
+
+  // ── PIN登録 ──
+  function registerPin() {
+    nameBox.className     = 'name-display loading';
+    empNameEl.textContent = '登録中…';
+    empSubEl.textContent  = '';
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ empNo: currentEmpNo, pin: pinInput })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.success) {
+        nameBox.className     = 'name-display success';
+        nameLabel.textContent = '氏名';
+        empNameEl.textContent = currentName;
+        empSubEl.textContent  = '✅ 暗証番号を登録しました';
+        empNumEl.innerHTML    = '●●●●●●';
+        // 3秒後に社員番号入力に戻る
+        setTimeout(resetToEmpMode, 3000);
+      } else {
+        nameBox.className     = 'name-display notfound';
+        empNameEl.textContent = data.message || '登録失敗';
+        empSubEl.textContent  = '';
+        setTimeout(resetToEmpMode, 2500);
+      }
+    })
+    .catch(function() {
+      nameBox.className     = 'name-display notfound';
+      empNameEl.textContent = '通信エラー';
+      empSubEl.textContent  = '';
+      setTimeout(resetToEmpMode, 2500);
+    });
+  }
+
+  // ── 社員番号モードに戻す ──
+  function resetToEmpMode() {
+    mode         = 'emp';
+    empInput     = '';
+    pinInput     = '';
+    currentEmpNo = '';
+    currentName  = '';
+    renderEmpDisplay();
+  }
+
+  function setKeyColor(m) {
+    keys.forEach(function(k) {
+      if (m === 'pin') k.classList.add('pin-active');
+      else             k.classList.remove('pin-active');
+    });
   }
 
   // ── カメラ ──
