@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
   <title>社員確認</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,6 +13,7 @@
       height: 100dvh;
       display: flex;
       overflow: hidden;
+      touch-action: manipulation;  /* ページ全体のダブルタップズーム無効 */
     }
 
     /* ===== 左パネル ===== */
@@ -112,6 +113,7 @@
       transition: background 0.1s, transform 0.1s;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
+      touch-action: manipulation;  /* ダブルタップズーム無効 */
     }
     .key:active { background: #00d4ff; color: #000; transform: scale(0.94); }
     .key.pin-active:active { background: #ffab40; color: #000; }
