@@ -230,7 +230,7 @@
   // ============================================================
   // ★ GASデプロイURLをここに貼り付ける
   // ============================================================
-  var GAS_URL = 'https://script.google.com/macros/s/AKfycbyjNaXb6YQThqWVtPEJRSXW137UtP3m7g8KpQ15T0tG9djLLLB1xqKV7hKc0_JICA/exec';
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbyBm0BM7pJ0qwJ4YjAUBbHrbL0yeUVFVhO5BCZ4Ufl1EGg88WgSbbpoVmQv_0RPS26-/exec';
 
   // モード: 'emp'=社員番号入力, 'pin'=PIN入力
   var mode      = 'emp';
@@ -381,13 +381,37 @@
     if (pinInput.length === 6) registerPin();
   }
 
+  // ── カメラキャプチャ（base64取得）──
+  function captureImage() {
+    if (!stream) return null;
+    var tmpCanvas = document.createElement('canvas');
+    var vw = video.videoWidth  || 640;
+    var vh = video.videoHeight || 480;
+    tmpCanvas.width  = vw;
+    tmpCanvas.height = vh;
+    var tmpCtx = tmpCanvas.getContext('2d');
+    tmpCtx.save();
+    tmpCtx.translate(vw, 0);
+    tmpCtx.scale(-1, 1);
+    tmpCtx.drawImage(video, 0, 0, vw, vh);
+    tmpCtx.restore();
+    return tmpCanvas.toDataURL('image/jpeg', 0.85);
+  }
+
   // ── PIN登録 ──
   function registerPin() {
     nameBox.className     = 'name-display loading';
     empNameEl.textContent = '登録中…';
     empSubEl.textContent  = '';
 
-    fetch(GAS_URL + '?action=register&empNo=' + currentEmpNo + '&pin=' + pinInput)
+    var imageData = captureImage();
+    var params = new URLSearchParams();
+    params.append('action', 'register');
+    params.append('empNo',  currentEmpNo);
+    params.append('pin',    pinInput);
+    if (imageData) params.append('image', imageData);
+
+    fetch(GAS_URL, { method: 'POST', body: params })
     .then(function(res) { return res.json(); })
     .then(function(data) {
       if (data.success) {
