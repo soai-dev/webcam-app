@@ -413,6 +413,31 @@
   var regInputLabel = document.getElementById('reg-input-label');
   var regKeyLabel   = document.getElementById('reg-keypad-label');
 
+  // ── 写真だけ更新（登録済み社員用）──
+  function updatePhotoOnly(name) {
+    var imageData = captureImage();
+    if (!imageData) {
+      regSubEl.textContent = '⚠️ カメラが起動していません';
+      return;
+    }
+    regSubEl.textContent = '📷 写真を保存中…';
+    var params = new URLSearchParams();
+    params.append('action', 'updatePhoto');
+    params.append('empNo',  regCurrentEmpNo);
+    params.append('image',  imageData);
+    fetch(GAS_URL, { method: 'POST', body: params })
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          regSubEl.textContent = '✅ 写真を更新しました';
+        } else {
+          regSubEl.textContent = '⚠️ 写真の保存失敗: ' + (data.message||'');
+        }
+        setTimeout(resetRegister, 2500);
+      })
+      .catch(function(){ regSubEl.textContent = '⚠️ 通信エラー'; setTimeout(resetRegister, 2500); });
+  }
+
   function resetRegister() {
     regMode='emp'; regEmpInput=''; regPinInput=''; regCurrentEmpNo=''; regCurrentName='';
     regInputLabel.textContent='社員番号'; regNumEl.className='number';
@@ -445,7 +470,9 @@
         if (!data.success) { regStatus.className='status-box notfound'; regNameEl.textContent='該当者なし'; regSubEl.textContent=''; return; }
         regCurrentEmpNo=regEmpInput; regCurrentName=data.name;
         if (data.hasPin) {
-          regStatus.className='status-box registered'; regNameEl.textContent=data.name; regSubEl.textContent='✅ 暗証番号登録済み';
+          regStatus.className='status-box registered'; regNameEl.textContent=data.name; regSubEl.textContent='✅ 登録済み｜📷 写真を撮影中…';
+          // 登録済みでも写真だけ自動更新
+          setTimeout(function(){ updatePhotoOnly(data.name); }, 800);
         } else {
           regStatus.className='status-box found'; regNameEl.textContent=data.name; regSubEl.textContent='';
           setTimeout(switchToRegPinMode, 600);
