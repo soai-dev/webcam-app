@@ -421,11 +421,9 @@
       return;
     }
     regSubEl.textContent = '📷 写真を保存中…';
-    var params = new URLSearchParams();
-    params.append('action', 'updatePhoto');
-    params.append('empNo',  regCurrentEmpNo);
-    params.append('image',  imageData);
-    fetch(GAS_URL, { method: 'POST', body: params })
+    var url = GAS_URL + '?action=updatePhoto&empNo=' + encodeURIComponent(regCurrentEmpNo)
+           + '&image=' + encodeURIComponent(imageData);
+    fetch(url)
       .then(function(r){ return r.json(); })
       .then(function(data) {
         if (data.success) {
@@ -497,23 +495,25 @@
     if (regPinInput.length===6) registerPin();
   }
 
-  function captureImage() {
+  function captureImage(small) {
     if (!stream) return null;
     var c=document.createElement('canvas');
     var vw=video.videoWidth||640, vh=video.videoHeight||480;
-    c.width=vw; c.height=vh;
+    c.width  = small ? 320 : vw;
+    c.height = small ? 240 : vh;
     var cx=c.getContext('2d');
-    cx.save(); cx.translate(vw,0); cx.scale(-1,1); cx.drawImage(video,0,0,vw,vh); cx.restore();
-    return c.toDataURL('image/jpeg',0.85);
+    cx.save(); cx.translate(c.width,0); cx.scale(-1,1);
+    cx.drawImage(video,0,0,c.width,c.height); cx.restore();
+    return c.toDataURL('image/jpeg', small ? 0.6 : 0.85);
   }
 
   function registerPin() {
     regStatus.className='status-box loading'; regNameEl.textContent='登録中…'; regSubEl.textContent='';
-    var imageData=captureImage();
-    var params=new URLSearchParams();
-    params.append('action','register'); params.append('empNo',regCurrentEmpNo);
-    params.append('pin',regPinInput); if(imageData) params.append('image',imageData);
-    fetch(GAS_URL,{method:'POST',body:params})
+    var imageData=captureImage(true); // 小さいサイズで撮影
+    var url = GAS_URL + '?action=savePhoto&empNo=' + encodeURIComponent(regCurrentEmpNo)
+            + '&pin=' + encodeURIComponent(regPinInput);
+    if (imageData) url += '&image=' + encodeURIComponent(imageData);
+    fetch(url)
       .then(function(r){ return r.json(); })
       .then(function(data) {
         if (data.success) {
