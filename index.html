@@ -6,6 +6,8 @@
   <title>社員管理</title>
   <!-- face-api.js (vladmandic fork: iOS Safari対応) -->
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+  <!-- SparkMD5: ブラウザでGASと同一のMD5を生成 -->
+  <script src="https://cdn.jsdelivr.net/npm/spark-md5/spark-md5.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -212,7 +214,7 @@
 </div>
 
 <script>
-  var GAS_URL = 'https://script.google.com/macros/s/AKfycbxHStr-tTiZGEWywEJ7Xh1tyhHKTaUtyKie7RzINUVrlLCp1fhfN3LkxsFALmVSFnw/exec'; // ← GASデプロイURLに変更
+  var GAS_URL = 'YOUR_GAS_DEPLOY_URL'; // ← GASデプロイURLに変更
   var MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
 
   // ── face-api モデル読み込み ──
@@ -298,7 +300,7 @@
     punchSub.textContent  = '';
 
     // ① BASE36ハッシュ化（ブラウザ側）
-    var pinHash = await base36HashBrowser(punchInput);
+    var pinHash = base36HashBrowser(punchInput);
 
     // ② GASにPINハッシュを送って社員情報＋登録写真取得
     var data;
@@ -391,81 +393,12 @@
     }
   }
 
-  // ── BASE36ハッシュ（ブラウザ用 MD5 → Base36）──
-  async function base36HashBrowser(input) {
-    var msgBuffer = new TextEncoder().encode(input);
-    var hashBuffer = await crypto.subtle.digest('MD5', msgBuffer).catch(function(){
-      // crypto.subtle は MD5 非対応なので代替実装
-      return md5Buffer(input);
-    });
-    if (!hashBuffer) hashBuffer = md5Buffer(input);
-    var hexString = Array.from(new Uint8Array(hashBuffer))
-      .map(function(b){ return ('0'+(b&0xFF).toString(16)).slice(-2); }).join('');
+  // ── BASE36ハッシュ（ブラウザ用・SparkMD5使用）──
+  // SparkMD5はGASのUtilities.computeDigest(MD5)と同一結果を返す
+  function base36HashBrowser(input) {
+    var hexString = SparkMD5.hash(input); // 小文字hex
     var bigVal = BigInt('0x' + hexString);
     return bigVal.toString(36).slice(0,8).toUpperCase();
-  }
-
-  // MD5実装（SubtleCrypto非対応環境用）
-  function md5Buffer(str) {
-    // RFC 1321 MD5実装
-    function safeAdd(x,y){ var lsw=(x&0xFFFF)+(y&0xFFFF); return (((x>>16)+(y>>16)+(lsw>>16))<<16)|(lsw&0xFFFF); }
-    function bitRotateLeft(num,cnt){ return (num<<cnt)|(num>>>(32-cnt)); }
-    function md5cmn(q,a,b,x,s,t){ return safeAdd(bitRotateLeft(safeAdd(safeAdd(a,q),safeAdd(x,t)),s),b); }
-    function md5ff(a,b,c,d,x,s,t){ return md5cmn((b&c)|((~b)&d),a,b,x,s,t); }
-    function md5gg(a,b,c,d,x,s,t){ return md5cmn((b&d)|(c&(~d)),a,b,x,s,t); }
-    function md5hh(a,b,c,d,x,s,t){ return md5cmn(b^c^d,a,b,x,s,t); }
-    function md5ii(a,b,c,d,x,s,t){ return md5cmn(c^(b|(~d)),a,b,x,s,t); }
-    var m=[];
-    var bytes=new TextEncoder().encode(str);
-    var len8=bytes.length;
-    var words=new Array(Math.ceil((len8+9)/4)*4/4+1).fill(0);
-    for(var i=0;i<len8;i++) words[i>>2]|=bytes[i]<<((i%4)*8);
-    words[len8>>2]|=0x80<<((len8%4)*8);
-    words[words.length-2]=len8*8;
-    var M=words;
-    var a=0x67452301,b=0xefcdab89,c=0x98badcfe,d=0x10325476;
-    for(var i=0;i<M.length;i+=16){
-      var A=a,B=b,C=c,D=d;
-      a=md5ff(a,b,c,d,M[i+0],7,-680876936);  b=md5ff(d,a,b,c,M[i+1],12,-389564586);
-      c=md5ff(c,d,a,b,M[i+2],17,606105819);   d=md5ff(b,c,d,a,M[i+3],22,-1044525330);
-      a=md5ff(a,b,c,d,M[i+4],7,-176418897);   b=md5ff(d,a,b,c,M[i+5],12,1200080426);
-      c=md5ff(c,d,a,b,M[i+6],17,-1473231341); d=md5ff(b,c,d,a,M[i+7],22,-45705983);
-      a=md5ff(a,b,c,d,M[i+8],7,1770035416);   b=md5ff(d,a,b,c,M[i+9],12,-1958414417);
-      c=md5ff(c,d,a,b,M[i+10],17,-42063);     d=md5ff(b,c,d,a,M[i+11],22,-1990404162);
-      a=md5ff(a,b,c,d,M[i+12],7,1804603682);  b=md5ff(d,a,b,c,M[i+13],12,-40341101);
-      c=md5ff(c,d,a,b,M[i+14],17,-1502002290);d=md5ff(b,c,d,a,M[i+15],22,1236535329);
-      a=md5gg(a,b,c,d,M[i+1],5,-165796510);   b=md5gg(d,a,b,c,M[i+6],9,-1069501632);
-      c=md5gg(c,d,a,b,M[i+11],14,643717713);  d=md5gg(b,c,d,a,M[i+0],20,-373897302);
-      a=md5gg(a,b,c,d,M[i+5],5,-701558691);   b=md5gg(d,a,b,c,M[i+10],9,38016083);
-      c=md5gg(c,d,a,b,M[i+15],14,-660478335); d=md5gg(b,c,d,a,M[i+4],20,-405537848);
-      a=md5gg(a,b,c,d,M[i+9],5,568446438);    b=md5gg(d,a,b,c,M[i+14],9,-1019803690);
-      c=md5gg(c,d,a,b,M[i+3],14,-187363961);  d=md5gg(b,c,d,a,M[i+8],20,1163531501);
-      a=md5gg(a,b,c,d,M[i+13],5,-1444681467); b=md5gg(d,a,b,c,M[i+2],9,-51403784);
-      c=md5gg(c,d,a,b,M[i+7],14,1735328473);  d=md5gg(b,c,d,a,M[i+12],20,-1926607734);
-      a=md5hh(a,b,c,d,M[i+5],4,-378558);      b=md5hh(d,a,b,c,M[i+8],11,-2022574463);
-      c=md5hh(c,d,a,b,M[i+11],16,1839030562); d=md5hh(b,c,d,a,M[i+14],23,-35309556);
-      a=md5hh(a,b,c,d,M[i+1],4,-1530992060);  b=md5hh(d,a,b,c,M[i+4],11,1272893353);
-      c=md5hh(c,d,a,b,M[i+7],16,-155497632);  d=md5hh(b,c,d,a,M[i+10],23,-1094730640);
-      a=md5hh(a,b,c,d,M[i+13],4,681279174);   b=md5hh(d,a,b,c,M[i+0],11,-358537222);
-      c=md5hh(c,d,a,b,M[i+3],16,-722521979);  d=md5hh(b,c,d,a,M[i+6],23,76029189);
-      a=md5hh(a,b,c,d,M[i+9],4,-640364487);   b=md5hh(d,a,b,c,M[i+12],11,-421815835);
-      c=md5hh(c,d,a,b,M[i+15],16,530742520);  d=md5hh(b,c,d,a,M[i+2],23,-995338651);
-      a=md5ii(a,b,c,d,M[i+0],6,-198630844);   b=md5ii(d,a,b,c,M[i+7],10,1126891415);
-      c=md5ii(c,d,a,b,M[i+14],15,-1416354905);d=md5ii(b,c,d,a,M[i+5],21,-57434055);
-      a=md5ii(a,b,c,d,M[i+12],6,1700485571);  b=md5ii(d,a,b,c,M[i+3],10,-1894986606);
-      c=md5ii(c,d,a,b,M[i+10],15,-1051523);   d=md5ii(b,c,d,a,M[i+1],21,-2054922799);
-      a=md5ii(a,b,c,d,M[i+8],6,1873313359);   b=md5ii(d,a,b,c,M[i+15],10,-30611744);
-      c=md5ii(c,d,a,b,M[i+6],15,-1560198380); d=md5ii(b,c,d,a,M[i+13],21,1309151649);
-      a=md5ii(a,b,c,d,M[i+4],6,-145523070);   b=md5ii(d,a,b,c,M[i+11],10,-1120210379);
-      c=md5ii(c,d,a,b,M[i+2],15,718787259);   d=md5ii(b,c,d,a,M[i+9],21,-343485551);
-      a=safeAdd(a,A); b=safeAdd(b,B); c=safeAdd(c,C); d=safeAdd(d,D);
-    }
-    var result=new Uint8Array(16);
-    [a,b,c,d].forEach(function(v,i){
-      result[i*4]=(v&0xff); result[i*4+1]=((v>>8)&0xff);
-      result[i*4+2]=((v>>16)&0xff); result[i*4+3]=((v>>24)&0xff);
-    });
-    return result.buffer;
   }
 
   // ============================================================
